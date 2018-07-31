@@ -7,19 +7,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/journal")
 public class JournalController {
-        Gson gson = new Gson();
+    private Gson gson = new Gson();
 
-        @Autowired
-        private CrudRepository<Journal, Integer> journalRepository;
+    private final CrudRepository<Journal, Integer> journalRepository;
 
-        @GetMapping()
+    @Autowired
+    public JournalController(CrudRepository<Journal, Integer> journalRepository) {
+        this.journalRepository = journalRepository;
+    }
+
+    @GetMapping()
         public String getJournal(@RequestParam Integer id) {
             JsonObject replyObject = gson.fromJson("{}", JsonObject.class);
 
@@ -35,15 +37,16 @@ public class JournalController {
             return gson.toJson(replyObject);
         }
 
-        @GetMapping("/all")
+        @GetMapping(value = "/all", produces = "application/json")
         public String getAllJournals(){
-            JsonArray journalResults = new JsonArray();
-            journalRepository.findAll().forEach(journalResults::add);
+
+            Iterable<Journal> iterableJournalResults = journalRepository.findAll();
+            JsonArray jsonArrayJournalResults = gson.toJsonTree(iterableJournalResults).getAsJsonArray();
 
             JsonObject baseObject = gson.fromJson("{}", JsonObject.class);
-            baseObject.addProperty("numFound", journalResults.size());
-            baseObject.addProperty("results", journalResults);
-            return gson.toJson(journalResults);
+            baseObject.addProperty("numFound", jsonArrayJournalResults.size());
+            baseObject.add("results", jsonArrayJournalResults);
+            return gson.toJson(baseObject);
         }
 
         @PostMapping(consumes = "application/json")
